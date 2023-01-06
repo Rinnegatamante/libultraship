@@ -358,9 +358,10 @@ bool Archive::LoadMainMPQ(bool enableWriting, bool generateCrcMap) {
         }
     }
     bool baseLoaded = false;
+
     size_t i = 0;
     while (!baseLoaded && i < mOtrArchives.size()) {
-#if defined(__SWITCH__) || defined(__WIIU__)
+#if defined(__SWITCH__) || defined(__WIIU__) || defined(__vita__)
         std::string fullPath = mOtrArchives[i];
 #else
         std::string fullPath = std::filesystem::absolute(mOtrArchives[i]).string();
@@ -389,8 +390,9 @@ bool Archive::LoadMainMPQ(bool enableWriting, bool generateCrcMap) {
         SPDLOG_ERROR("No valid OTR file was provided.");
         return false;
     }
+
     for (size_t j = i; j < mOtrArchives.size(); j++) {
-#if defined(__SWITCH__) || defined(__WIIU__)
+#if defined(__SWITCH__) || defined(__WIIU__) || defined(__vita__)
         std::string fullPath = mOtrArchives[j];
 #else
         std::string fullPath = std::filesystem::absolute(mOtrArchives[j]).string();
@@ -408,7 +410,7 @@ bool Archive::LoadMainMPQ(bool enableWriting, bool generateCrcMap) {
 
 bool Archive::LoadPatchMPQ(const std::string& path, bool validateVersion) {
     HANDLE patchHandle = NULL;
-#if defined(__SWITCH__) || defined(__WIIU__)
+#if defined(__SWITCH__) || defined(__WIIU__) || defined(__vita__)
     std::string fullPath = path;
 #else
     std::string fullPath = std::filesystem::absolute(path).string();

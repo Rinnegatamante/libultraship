@@ -71,9 +71,13 @@ Window::~Window() {
 
 void Window::CreateDefaults() {
     if (GetConfig()->isNewInstance) {
+#ifdef __vita__
+        GetConfig()->setInt("Window.Width", 960);
+        GetConfig()->setInt("Window.Height", 544);
+#else
         GetConfig()->setInt("Window.Width", 640);
         GetConfig()->setInt("Window.Height", 480);
-
+#endif
         GetConfig()->setString("Window.GfxBackend", "");
         GetConfig()->setString("Window.GfxApi", "");
         GetConfig()->setString("Window.AudioBackend", "");
@@ -120,7 +124,10 @@ void Window::Initialize(const std::vector<std::string>& otrFiles, const std::uno
 #endif
 
     mIsFullscreen = GetConfig()->getBool("Window.Fullscreen.Enabled", false) || steamDeckGameMode;
-
+#ifdef __vita__
+    mWidth = GetConfig()->getInt("Window.Width", 960);
+    mHeight = GetConfig()->getInt("Window.Height", 544);
+#else
     if (mIsFullscreen) {
         mWidth = GetConfig()->getInt("Window.Fullscreen.Width", steamDeckGameMode ? 1280 : 1920);
         mHeight = GetConfig()->getInt("Window.Fullscreen.Height", steamDeckGameMode ? 800 : 1080);
@@ -128,8 +135,9 @@ void Window::Initialize(const std::vector<std::string>& otrFiles, const std::uno
         mWidth = GetConfig()->getInt("Window.Width", 640);
         mHeight = GetConfig()->getInt("Window.Height", 480);
     }
-
+#endif
     InitializeWindowManager(GetConfig()->getString("Window.GfxBackend"), GetConfig()->getString("Window.GfxApi"));
+
     InitializeAudioPlayer(GetConfig()->getString("Window.AudioBackend"));
 
     InitializeSpeechSynthesis();
@@ -157,6 +165,10 @@ std::string Window::GetAppDirectoryPath() {
     char* fpath = std::getenv("SHIP_HOME");
     if (fpath != NULL)
         return std::string(fpath);
+#endif
+
+#ifdef __vita__
+    return std::string("ux0:data/soh");
 #endif
 
     return ".";

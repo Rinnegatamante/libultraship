@@ -151,7 +151,7 @@
 #endif
 
 // Vertex arrays are not supported on ES2/WebGL1 unless Emscripten which uses an extension
-#ifndef IMGUI_IMPL_OPENGL_ES2
+#if !defined(IMGUI_IMPL_OPENGL_ES2) && !defined(__vita__)
 #define IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
 #elif defined(__EMSCRIPTEN__)
 #define IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
@@ -172,7 +172,7 @@
 #endif
 
 // Desktop GL 3.3+ has glBindSampler()
-#if !defined(IMGUI_IMPL_OPENGL_ES2) && !defined(IMGUI_IMPL_OPENGL_ES3) && defined(GL_VERSION_3_3)
+#if !defined(IMGUI_IMPL_OPENGL_ES2) && !defined(IMGUI_IMPL_OPENGL_ES3) && defined(GL_VERSION_3_3) && !defined(__vita__)
 #define IMGUI_IMPL_OPENGL_MAY_HAVE_BIND_SAMPLER
 #endif
 
@@ -310,6 +310,9 @@ bool    ImGui_ImplOpenGL3_Init(const char* glsl_version)
 
     // Store GLSL version string so we can refer to it later in case we recreate shaders.
     // Note: GLSL version is NOT the same as GL version. Leave this to nullptr if unsure.
+#ifdef __vita__
+    glsl_version = "";
+#endif
     if (glsl_version == nullptr)
     {
 #if defined(IMGUI_IMPL_OPENGL_ES2)
@@ -636,14 +639,14 @@ bool ImGui_ImplOpenGL3_CreateFontsTexture()
     // Upload texture to graphics system
     // (Bilinear sampling is required by default. Set 'io.Fonts->Flags |= ImFontAtlasFlags_NoBakedLines' or 'style.AntiAliasedLinesUseTex = false' to allow point/nearest sampling)
     GLint last_texture;
+
     GL_CALL(glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture));
     GL_CALL(glGenTextures(1, &bd->FontTexture));
     GL_CALL(glBindTexture(GL_TEXTURE_2D, bd->FontTexture));
     GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
     GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-#ifdef GL_UNPACK_ROW_LENGTH // Not on WebGL/ES
+#ifdef GL_UNPACK_ROW_LENGTH && !defined(__vita__) // Not on WebGL/ES
     GL_CALL(glPixelStorei(GL_UNPACK_ROW_LENGTH, 0));
-#endif
     GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels));
 
     // Store our identifier
@@ -720,6 +723,43 @@ bool    ImGui_ImplOpenGL3_CreateDeviceObjects()
 
     // Parse GLSL version string
     int glsl_version = 130;
+#ifdef __vita__
+	const GLchar* vertex_shader_glsl_120 = "";
+
+    const GLchar* vertex_shader_glsl_130 =
+        "uniform float4x4 ProjMtx;\n"
+        "void main(\n"
+		"float2 Position,\n"
+		"float2 UV,\n"
+        "float4 Color,\n"
+        "float2 out Frag_UV : TEXCOORD0,\n"
+        "float4 out Frag_Color : COLOR,\n"
+		"float4 out gl_Position : 	POSITION\n"
+		") {\n"
+        "    Frag_UV = UV;\n"
+        "    Frag_Color = Color;\n"
+        "    gl_Position = mul(float4(Position.xy, 0, 1), ProjMtx);\n"
+        "}\n";
+
+    const GLchar* vertex_shader_glsl_300_es = "";
+
+    const GLchar* vertex_shader_glsl_410_core = "";
+
+    const GLchar* fragment_shader_glsl_120 = "";
+
+    const GLchar* fragment_shader_glsl_130 =
+        "uniform sampler2D tex;\n"
+        "float4 main(\n"
+		"float2 Frag_UV : TEXCOORD0,\n"
+		"float4 Frag_Color : COLOR\n"
+		") {\n"
+        "    return Frag_Color * tex2D(tex, Frag_UV);\n"
+        "}\n";
+
+    const GLchar* fragment_shader_glsl_300_es = "";
+
+    const GLchar* fragment_shader_glsl_410_core = "";
+#else
     sscanf(bd->GlslVersionString, "#version %d", &glsl_version);
 
     const GLchar* vertex_shader_glsl_120 =
@@ -821,7 +861,7 @@ bool    ImGui_ImplOpenGL3_CreateDeviceObjects()
         "{\n"
         "    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
         "}\n";
-
+#endif
     // Select shaders matching our GLSL versions
     const GLchar* vertex_shader = nullptr;
     const GLchar* fragment_shader = nullptr;
@@ -864,14 +904,19 @@ bool    ImGui_ImplOpenGL3_CreateDeviceObjects()
     glAttachShader(bd->ShaderHandle, vert_handle);
     glAttachShader(bd->ShaderHandle, frag_handle);
     glLinkProgram(bd->ShaderHandle);
+#ifndef __vita__
     CheckProgram(bd->ShaderHandle, "shader program");
 
     glDetachShader(bd->ShaderHandle, vert_handle);
     glDetachShader(bd->ShaderHandle, frag_handle);
+#endif
     glDeleteShader(vert_handle);
     glDeleteShader(frag_handle);
-
+#ifdef __vita__
+	bd->AttribLocationTex = glGetUniformLocation(bd->ShaderHandle, "tex");
+#else
     bd->AttribLocationTex = glGetUniformLocation(bd->ShaderHandle, "Texture");
+#endif
     bd->AttribLocationProjMtx = glGetUniformLocation(bd->ShaderHandle, "ProjMtx");
     bd->AttribLocationVtxPos = (GLuint)glGetAttribLocation(bd->ShaderHandle, "Position");
     bd->AttribLocationVtxUV = (GLuint)glGetAttribLocation(bd->ShaderHandle, "UV");

@@ -467,7 +467,9 @@ union GL3WProcs {
         PFNGLACTIVETEXTUREPROC            ActiveTexture;
         PFNGLATTACHSHADERPROC             AttachShader;
         PFNGLBINDBUFFERPROC               BindBuffer;
+#ifndef __vita__
         PFNGLBINDSAMPLERPROC              BindSampler;
+#endif
         PFNGLBINDTEXTUREPROC              BindTexture;
         PFNGLBINDVERTEXARRAYPROC          BindVertexArray;
         PFNGLBLENDEQUATIONPROC            BlendEquation;
@@ -485,7 +487,9 @@ union GL3WProcs {
         PFNGLDELETESHADERPROC             DeleteShader;
         PFNGLDELETETEXTURESPROC           DeleteTextures;
         PFNGLDELETEVERTEXARRAYSPROC       DeleteVertexArrays;
+#ifndef __vita__
         PFNGLDETACHSHADERPROC             DetachShader;
+#endif
         PFNGLDISABLEPROC                  Disable;
         PFNGLDISABLEVERTEXATTRIBARRAYPROC DisableVertexAttribArray;
         PFNGLDRAWELEMENTSPROC             DrawElements;
@@ -632,7 +636,9 @@ static GL3WglProc get_proc(const char *proc)
 }
 #elif defined(__APPLE__)
 #include <dlfcn.h>
-
+#ifdef __vita__
+void *vglGetProcAddress(const char *name);
+#endif
 static void *libgl;
 static int open_libgl(void)
 {
@@ -658,21 +664,31 @@ static GL3WglProc (*glx_get_proc_address)(const GLubyte *);
 
 static int open_libgl(void)
 {
+#ifndef __vita__
     libgl = dlopen("libGL.so.1", RTLD_LAZY | RTLD_LOCAL);
     if (!libgl)
         return GL3W_ERROR_LIBRARY_OPEN;
     *(void **)(&glx_get_proc_address) = dlsym(libgl, "glXGetProcAddressARB");
+#endif
     return GL3W_OK;
 }
 
-static void close_libgl(void) { dlclose(libgl); }
+static void close_libgl(void) {
+#ifndef __vita__
+    dlclose(libgl);
+#endif
+}
 
 static GL3WglProc get_proc(const char *proc)
 {
+#ifdef __vita__
+    res = (GL3WglProc)vglGetProcAddress(proc);
+#else
     GL3WglProc res;
     res = glx_get_proc_address((const GLubyte *)proc);
     if (!res)
         *(void **)(&res) = dlsym(libgl, proc);
+#endf
     return res;
 }
 #endif
@@ -681,12 +697,14 @@ static struct { int major, minor; } version;
 
 static int parse_version(void)
 {
+#ifndef __vita__
     if (!glGetIntegerv)
         return GL3W_ERROR_INIT;
     glGetIntegerv(GL_MAJOR_VERSION, &version.major);
     glGetIntegerv(GL_MINOR_VERSION, &version.minor);
     if (version.major < 3)
         return GL3W_ERROR_OPENGL_VERSION;
+#endif
     return GL3W_OK;
 }
 
@@ -722,7 +740,9 @@ static const char *proc_names[] = {
     "glActiveTexture",
     "glAttachShader",
     "glBindBuffer",
+#ifndef __vita__
     "glBindSampler",
+#endif
     "glBindTexture",
     "glBindVertexArray",
     "glBlendEquation",
@@ -740,7 +760,9 @@ static const char *proc_names[] = {
     "glDeleteShader",
     "glDeleteTextures",
     "glDeleteVertexArrays",
+#ifndef __vita__
     "glDetachShader",
+#endif
     "glDisable",
     "glDisableVertexAttribArray",
     "glDrawElements",

@@ -251,6 +251,13 @@ static uint64_t previous_time;
 static HANDLE timer;
 #endif
 
+#ifdef __vita__
+#include <vitasdk.h>
+extern "C" {
+GLboolean vglInitExtended(int legacy_pool_size, int width, int height, int ram_threshold, SceGxmMultisampleMode msaa);
+};
+#endif
+
 static int target_fps = 60;
 
 #define FRAME_INTERVAL_US_NUMERATOR 1000000
@@ -258,6 +265,9 @@ static int target_fps = 60;
 
 static void gfx_sdl_init(const char* game_name, const char* gfx_api_name, bool start_in_fullscreen, uint32_t width,
                          uint32_t height) {
+#ifdef __vita__
+    vglInitExtended(0, 960, 544, 32 * 1024 * 1024, SCE_GXM_MULTISAMPLE_4X);
+#endif
     SDL_Init(SDL_INIT_VIDEO);
 
     SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
@@ -312,7 +322,7 @@ static void gfx_sdl_init(const char* game_name, const char* gfx_api_name, bool s
     SohImGui::WindowImpl window_impl;
 
     if (use_opengl) {
-#ifndef __SWITCH__
+#if !defined(__SWITCH__) && !defined(__vita__)
         SDL_GL_GetDrawableSize(wnd, &window_width, &window_height);
 
         if (start_in_fullscreen) {
