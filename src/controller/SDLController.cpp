@@ -85,7 +85,7 @@ void SDLController::NormalizeStickAxis(SDL_GameControllerAxis axisX, SDL_GameCon
     if (ax != 0.0f && ay != 0.0f) {
         auto slope = ay / ax;
         auto edgex = copysign(85.0f / (abs(slope) + 16.0f / 69.0f), ax);
-        auto edgey = copysign(std::min(abs(edgex * slope), 85.0f / (1.0f / abs(slope) + 16.0f / 69.0f)), ay);
+        auto edgey = copysign(std::min((float)abs(edgex * slope), 85.0f / (1.0f / abs(slope) + 16.0f / 69.0f)), ay);
         edgex = edgey / slope;
 
         auto scale = sqrt(edgex * edgex + edgey * edgey) / 85.0f;

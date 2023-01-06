@@ -268,9 +268,13 @@ Window::~Window() {
 
 void Window::CreateDefaults() {
     if (GetConfig()->isNewInstance) {
+#ifdef __vita__
+        GetConfig()->setInt("Window.Width", 960);
+        GetConfig()->setInt("Window.Height", 544);
+#else
         GetConfig()->setInt("Window.Width", 640);
         GetConfig()->setInt("Window.Height", 480);
-
+#endif
         GetConfig()->setString("Window.GfxBackend", "");
         GetConfig()->setString("Window.AudioBackend", "");
 
@@ -296,7 +300,10 @@ void Window::Initialize(const std::vector<std::string>& otrFiles, const std::uno
     InitializeControlDeck();
 
     mIsFullscreen = GetConfig()->getBool("Window.Fullscreen.Enabled", false);
-
+#ifdef __vita__
+    mWidth = GetConfig()->getInt("Window.Width", 960);
+    mHeight = GetConfig()->getInt("Window.Height", 544);
+#else
     if (mIsFullscreen) {
         mWidth = GetConfig()->getInt("Window.Fullscreen.Width", 1920);
         mHeight = GetConfig()->getInt("Window.Fullscreen.Height", 1080);
@@ -306,6 +313,7 @@ void Window::Initialize(const std::vector<std::string>& otrFiles, const std::uno
     }
 
     mGfxBackend = GetConfig()->getString("Window.GfxBackend");
+#endif
     InitializeWindowManager();
 
     mAudioBackend = GetConfig()->getString("Window.AudioBackend");
@@ -330,6 +338,10 @@ std::string Window::GetAppDirectoryPath() {
     char* fpath = std::getenv("SHIP_HOME");
     if (fpath != NULL)
         return std::string(fpath);
+#endif
+
+#ifdef __vita__
+    return std::string("ux0:data/soh");
 #endif
 
     return ".";

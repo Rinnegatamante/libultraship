@@ -16,8 +16,11 @@ void DisplayListV0::ParseFileBinary(BinaryReader* reader, Resource* res) {
         uint32_t w1 = reader->ReadUInt32();
 
         if (sizeof(uintptr_t) < 8) {
+#ifdef __vita__
+            dl->instructions.push_back(((uint64_t)w1 << 32) | w0);
+#else
             dl->instructions.push_back(((uint64_t)w0 << 32) | w1);
-
+#endif
             uint8_t opcode = w0 >> 24;
 
             // These are 128-bit commands, so read an extra 64 bits...
@@ -25,8 +28,11 @@ void DisplayListV0::ParseFileBinary(BinaryReader* reader, Resource* res) {
                 opcode == G_MARKER || opcode == G_MTX_OTR) {
                 w0 = reader->ReadUInt32();
                 w1 = reader->ReadUInt32();
-
+#ifdef __vita__
+                dl->instructions.push_back(((uint64_t)w1 << 32) | w0);
+#else
                 dl->instructions.push_back(((uint64_t)w0 << 32) | w1);
+#endif
             }
 
             if (opcode == G_ENDDL) {
