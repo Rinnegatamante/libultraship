@@ -636,9 +636,7 @@ static GL3WglProc get_proc(const char *proc)
 }
 #elif defined(__APPLE__)
 #include <dlfcn.h>
-#ifdef __vita__
-void *vglGetProcAddress(const char *name);
-#endif
+
 static void *libgl;
 static int open_libgl(void)
 {
@@ -658,6 +656,9 @@ static GL3WglProc get_proc(const char *proc)
 }
 #else
 #include <dlfcn.h>
+#ifdef __vita__
+void *vglGetProcAddress(const char *name);
+#endif
 
 static void *libgl;
 static GL3WglProc (*glx_get_proc_address)(const GLubyte *);
@@ -681,14 +682,14 @@ static void close_libgl(void) {
 
 static GL3WglProc get_proc(const char *proc)
 {
+    GL3WglProc res;
 #ifdef __vita__
     res = (GL3WglProc)vglGetProcAddress(proc);
 #else
-    GL3WglProc res;
     res = glx_get_proc_address((const GLubyte *)proc);
     if (!res)
         *(void **)(&res) = dlsym(libgl, proc);
-#endf
+#endif
     return res;
 }
 #endif
