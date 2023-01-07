@@ -36,6 +36,10 @@
 #include <WTypesbase.h>
 #endif
 
+#ifdef __vita__
+#include <vitasdk.h>
+#endif
+
 #define GFX_API_NAME "SDL2 - OpenGL"
 
 static SDL_Window* wnd;
@@ -287,6 +291,11 @@ static void gfx_sdl_init(const char* game_name, bool start_in_fullscreen, uint32
     height = window_height;
 #endif
 
+#ifdef __vita__
+    width = window_width = 960;
+    height = window_height = 544;
+#endif
+
     wnd = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height,
                            SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
 
@@ -458,6 +467,24 @@ static uint64_t qpc_to_100ns(uint64_t qpc) {
 
 static inline void sync_framerate_with_timer(void) {
     uint64_t t;
+#ifdef __vita__
+    t = sceKernelGetProcessTimeWide();
+
+    const int64_t next = previous_time + FRAME_INTERVAL_US_NUMERATOR / FRAME_INTERVAL_US_DENOMINATOR;
+    const int64_t left = next - t;
+    if (left > 0) {
+        sceKernelDelayThread(left);
+    }
+
+    t = sceKernelGetProcessTimeWide();
+    if (left > 0 && t - next < 1000) {
+        // In case it takes some time for the application to wake up after sleep,
+        // or inaccurate timer,
+        // don't let that slow down the framerate.
+        t = next;
+    }
+    previous_time = t;
+#else
     t = qpc_to_100ns(SDL_GetPerformanceCounter());
 
     const int64_t next = previous_time + 10 * FRAME_INTERVAL_US_NUMERATOR / FRAME_INTERVAL_US_DENOMINATOR;
@@ -483,6 +510,7 @@ static inline void sync_framerate_with_timer(void) {
         t = next;
     }
     previous_time = t;
+#endif
 }
 
 static void gfx_sdl_swap_buffers_begin(void) {
