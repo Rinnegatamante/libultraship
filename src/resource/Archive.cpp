@@ -82,8 +82,10 @@ std::shared_ptr<OtrFile> Archive::LoadFileFromHandle(const std::string& filePath
     if (!attempt) {
         SPDLOG_ERROR("({}) Failed to open file {} from mpq archive  {}.", GetLastError(), filePath.c_str(),
                      mMainPath.c_str());
-        std::unique_lock<std::mutex> lock(fileToLoad->FileLoadMutex);
-        fileToLoad->HasLoadError = true;
+        if(fileToLoad->FileLoadMutex != nullptr) {
+            std::unique_lock<std::mutex> Lock(*fileToLoad->FileLoadMutex);
+            fileToLoad->HasLoadError = true;
+        }
         return fileToLoad;
     }
 
@@ -98,8 +100,10 @@ std::shared_ptr<OtrFile> Archive::LoadFileFromHandle(const std::string& filePath
             SPDLOG_ERROR("({}) Failed to close file {} from mpq after read failure in archive {}", GetLastError(),
                          filePath.c_str(), mMainPath.c_str());
         }
-        std::unique_lock<std::mutex> lock(fileToLoad->FileLoadMutex);
-        fileToLoad->HasLoadError = true;
+        if(fileToLoad->FileLoadMutex != nullptr) {
+            std::unique_lock<std::mutex> lock(*fileToLoad->FileLoadMutex);
+            fileToLoad->HasLoadError = true;
+        }
         return fileToLoad;
     }
 
@@ -108,11 +112,13 @@ std::shared_ptr<OtrFile> Archive::LoadFileFromHandle(const std::string& filePath
                      mMainPath.c_str());
     }
 
-    std::unique_lock<std::mutex> lock(fileToLoad->FileLoadMutex);
-    fileToLoad->Parent = includeParent ? shared_from_this() : nullptr;
-    fileToLoad->Buffer = fileData;
-    fileToLoad->BufferSize = fileSize;
-    fileToLoad->IsLoaded = true;
+    if(fileToLoad->FileLoadMutex != nullptr) {
+        std::unique_lock<std::mutex> lock(*fileToLoad->FileLoadMutex);
+        fileToLoad->Parent = includeParent ? shared_from_this() : nullptr;
+        fileToLoad->Buffer = fileData;
+        fileToLoad->BufferSize = fileSize;
+        fileToLoad->IsLoaded = true;
+    }
 
     return fileToLoad;
 }

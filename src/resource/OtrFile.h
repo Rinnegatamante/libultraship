@@ -16,7 +16,31 @@ class OtrFile {
     uint32_t BufferSize;
     bool IsLoaded = false;
     bool HasLoadError = false;
-    std::condition_variable FileLoadNotifier;
-    std::mutex FileLoadMutex;
+    std::condition_variable *FileLoadNotifier;
+    std::mutex *FileLoadMutex;
+    
+    OtrFile() {
+            FileLoadNotifier = new std::condition_variable();
+            FileLoadMutex = new std::mutex();
+        }
+
+        void releaseSyncObjects() {
+            if (FileLoadNotifier) {
+                delete FileLoadNotifier;
+                FileLoadNotifier = nullptr;
+            }
+
+            if (FileLoadMutex) {
+                delete FileLoadMutex;
+                FileLoadMutex = nullptr;
+            }
+        }
+
+        ~OtrFile() {
+            if (FileLoadNotifier)
+                delete FileLoadNotifier;
+            if (FileLoadMutex)
+                delete FileLoadMutex;
+        }
 };
 } // namespace Ship
